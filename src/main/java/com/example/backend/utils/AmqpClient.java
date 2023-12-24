@@ -33,7 +33,7 @@ public class AmqpClient {
      * 工程代码泄露可能会导致 AccessKey 泄露，并威胁账号下所有资源的安全性。以下代码示例使用环境变量获取 AccessKey 的方式进行调用，仅供参考
      */
 
-    private static Set<Content> contentSet = new HashSet<>();
+    private static Stack<Content> stackContent = new Stack<>();
 
     private static String accessKey = "LTAI5t5kCc7kgkAMzCADzUVX";
     private static String accessSecret = "LgO9jF1OG0qR3XuWM05a3RzpI2GdUd";
@@ -56,12 +56,12 @@ public class AmqpClient {
     // 连接数和消费速率及rebalance相关，建议每500QPS增加一个连接
     private static int connectionCount = 4;
 
-    public Set<Content> getContentSet() {
-        return contentSet;
+    public void setStackContent(Stack<Content> content) {
+        stackContent = content;
     }
 
-    public void setContentSet(Set<Content> contentSet) {
-        this.contentSet = contentSet;
+    public Stack<Content> getStatckContent() {
+        return stackContent;
     }
 
     public AmqpClient() {
@@ -158,19 +158,16 @@ public class AmqpClient {
         request.setTopicFullName("/k0kh4u9Sfng/pi-1/user/get");
 
         StringBuilder sb = new StringBuilder();
-        // TODO: build the string
-        // TODO: send it to ras-pi
-        // TODO: s is like: f"{"{k1}": "{v1}", "{k2}": "{v2}"}"
         sb.append("{");
         for(Map.Entry<String, String> entry: params.entrySet()) {
-            System.out.println(entry.getKey() + " " + entry.getValue());
+            // System.out.println(entry.getKey() + " " + entry.getValue());
             sb.append("\"" + entry.getKey() + "\": \"" + entry.getValue() + "\", ");
         }
         sb.delete(sb.length() - 2, sb.length());
         sb.append("}");
 
         String s = sb.toString(); // {"led": "all"}
-        System.out.println(s);
+        System.out.println("sendMessage(): " + s);
 
         request.setMessageContent(Base64.encodeBase64String(s.getBytes()));
 
@@ -216,19 +213,19 @@ public class AmqpClient {
             long generateTime = message.getLongProperty("generateTime");
             ObjectMapper objectMapper = new ObjectMapper();
             Content json = objectMapper.readValue(content, Content.class);
-            if(contentSet.size() > 100) {
-                contentSet.clear();
+            if(stackContent.size() > 100) {
+                stackContent.clear();
             }
-            contentSet.add(json);
+            stackContent.add(json);
             Map<String, Values> items = json.getItems();
             for (Map.Entry<String, Values> entry : items.entrySet()) {
                 System.out.println(entry.getKey() + " = " + entry.getValue().getValue());
             }
             System.out.println("receive message"
-                + ",\n topic = " + topic
-                + ",\n messageId = " + messageId
-                + ",\n generateTime = " + generateTime
-                + ",\n content = " + content);
+                + ",\ntopic = " + topic
+                + ",\nmessageId = " + messageId
+                + ",\ngenerateTime = " + generateTime
+                + ",\ncontent = " + content);
 
         } catch (Exception e) {
             System.err.println("processMessage occurs error " + e);
