@@ -20,6 +20,7 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.jms.*;
 import javax.naming.Context;
 import javax.naming.InitialContext;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -124,9 +125,6 @@ public class AmqpClient {
             consumer.setMessageListener(messageListener);
         }
 
-//        sendMessage("red");
-        System.out.println("amqp demo is started successfully");
-
 //        // 结束程序运行
 //        Thread.sleep(60 * 1000);
 //        System.out.println("run shutdown");
@@ -147,7 +145,7 @@ public class AmqpClient {
 //        }
     }
 
-    public static void sendMessage(Map<String, String> params) {
+    public static void sendMessage(Map<String, String> params) throws UnsupportedEncodingException {
         DefaultProfile profile = DefaultProfile.getProfile("cn-shanghai", accessKey, accessSecret);
         IAcsClient client = new DefaultAcsClient(profile);
         PubRequest request = new PubRequest();
@@ -167,15 +165,15 @@ public class AmqpClient {
         sb.append("}");
 
         String s = sb.toString(); // {"led": "all"}
-        System.out.println("sendMessage(): " + s);
+        logger.info("sendMessage(): " + s);
 
-        request.setMessageContent(Base64.encodeBase64String(s.getBytes()));
+        request.setMessageContent(Base64.encodeBase64String(s.getBytes("GBK")));
 
         try {
             PubResponse response = client.getAcsResponse(request);
-            System.out.println("pub success?:" + response.getSuccess());
+            logger.info("pub success?:" + response.getSuccess());
         } catch (Exception e) {
-            System.out.println(e);
+            logger.error(String.valueOf(e));
         }
     }
 
@@ -196,7 +194,7 @@ public class AmqpClient {
                     }
                 });
             } catch (Exception e) {
-                System.err.println("submit task occurs exception " + e);
+                logger.error("submit task occurs exception " + e);
             }
         }
     };
@@ -211,6 +209,10 @@ public class AmqpClient {
             String topic = message.getStringProperty("topic");
             String messageId = message.getStringProperty("messageId");
             long generateTime = message.getLongProperty("generateTime");
+            if(!topic.equals("/k0kh4u9Sfng/pi-1/thing/event/property/post")) {
+                stackContent.clear();
+                return;
+            }
             ObjectMapper objectMapper = new ObjectMapper();
             Content json = objectMapper.readValue(content, Content.class);
             if(stackContent.size() > 100) {
@@ -219,16 +221,16 @@ public class AmqpClient {
             stackContent.add(json);
             Map<String, Values> items = json.getItems();
             for (Map.Entry<String, Values> entry : items.entrySet()) {
-                System.out.println(entry.getKey() + " = " + entry.getValue().getValue());
+                logger.trace(entry.getKey() + " = " + entry.getValue().getValue());
             }
-            System.out.println("receive message"
+            logger.info("receive message"
                 + ",\ntopic = " + topic
                 + ",\nmessageId = " + messageId
                 + ",\ngenerateTime = " + generateTime
                 + ",\ncontent = " + content);
 
         } catch (Exception e) {
-            System.err.println("processMessage occurs error " + e);
+            logger.error("processMessage occurs error " + e);
         }
     }
 
@@ -238,7 +240,7 @@ public class AmqpClient {
          */
         @Override
         public void onConnectionEstablished(URI remoteURI) {
-            System.out.println("onConnectionEstablished, remoteUri: " + remoteURI);
+            logger.info("onConnectionEstablished, remoteUri: " + remoteURI);
         }
 
         /**
@@ -246,7 +248,7 @@ public class AmqpClient {
          */
         @Override
         public void onConnectionFailure(Throwable error) {
-            System.err.println("onConnectionFailure, " + error.getMessage());
+            logger.error("onConnectionFailure, " + error.getMessage());
         }
 
         /**
@@ -254,7 +256,9 @@ public class AmqpClient {
          */
         @Override
         public void onConnectionInterrupted(URI remoteURI) {
-            System.out.println("onConnectionInterrupted, remoteUri: " + remoteURI);
+           logger.info("onConnectionInterrupted, remoteUri: " + remoteURI);
+           stackContent.clear();
+           logger.debug(String.valueOf(stackContent.size()));
         }
 
         /**
@@ -262,7 +266,7 @@ public class AmqpClient {
          */
         @Override
         public void onConnectionRestored(URI remoteURI) {
-            System.out.println("onConnectionRestored, remoteUri: " + remoteURI);
+            logger.info("onConnectionRestored, remoteUri: " + remoteURI);
         }
 
         @Override

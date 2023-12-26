@@ -8,14 +8,18 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import com.alibaba.fastjson.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-public class test {
+public class backend {
 
+    private final static Logger logger = LoggerFactory.getLogger(backend.class);
     AmqpClient amqpClient = new AmqpClient();
 
     @GetMapping("/getData")
@@ -37,19 +41,19 @@ public class test {
     }
 
     @PostMapping("/sendData")
-    public void sendData(HttpServletRequest request) {
+    public void sendData(HttpServletRequest request) throws UnsupportedEncodingException {
         String led = "", adm = "", loc = "";
         if (request.getParameterMap().containsKey("led")) {
             led = request.getParameter("led");
-            System.out.println("led: " + led);
+            logger.trace("led: " + led);
         }
         if (request.getParameterMap().containsKey("adm")) {
             adm = request.getParameter("adm");
-            System.out.println("adm: " + adm);
+            logger.trace("adm: " + adm);
         }
         if (request.getParameterMap().containsKey("loc")) {
             loc = request.getParameter("loc");
-            System.out.println("loc: " + loc);
+            logger.trace("loc: " + loc);
         }
 
         StringBuilder stringBuilder = new StringBuilder();
@@ -69,7 +73,7 @@ public class test {
         stringBuilder.append("}");
 
         String jsonString = stringBuilder.toString();
-        System.out.println(jsonString);
+        logger.info(jsonString);
 
         JSONObject jsonObject = JSONObject.parseObject(jsonString);
         Map<String, String> map = JSONObject.parseObject(
