@@ -5,8 +5,10 @@ import com.aliyuncs.IAcsClient;
 import com.aliyuncs.iot.model.v20180120.PubRequest;
 import com.aliyuncs.iot.model.v20180120.PubResponse;
 import com.aliyuncs.profile.DefaultProfile;
+import com.example.backend.controller.DataController;
 import com.example.backend.po.Content;
 import com.example.backend.po.Values;
+import com.example.backend.service.ParamsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.qpid.jms.JmsConnection;
@@ -14,6 +16,7 @@ import org.apache.qpid.jms.JmsConnectionListener;
 import org.apache.qpid.jms.message.JmsInboundMessageDispatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -28,6 +31,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class AmqpClient {
+    private static DataController controller;
     private final static Logger logger = LoggerFactory.getLogger(AmqpClient.class);
     /**
      * 工程代码泄露可能会导致 AccessKey 泄露，并威胁账号下所有资源的安全性。以下代码示例使用环境变量获取 AccessKey 的方式进行调用，仅供参考
@@ -60,12 +64,13 @@ public class AmqpClient {
         stackContent = content;
     }
 
-    public Stack<Content> getStatckContent() {
+    public Stack<Content> getStackContent() {
         return stackContent;
     }
 
-    public AmqpClient() {
+    public AmqpClient(DataController controller) {
         try {
+            this.controller = controller;
             run();
         } catch (Exception e) {
             e.printStackTrace();
@@ -217,6 +222,8 @@ public class AmqpClient {
                 stackContent.clear();
             }
             stackContent.add(json);
+            System.out.println(content);
+            controller.paramsService.saveParamsAndLicenses(json);
             Map<String, Values> items = json.getItems();
             for (Map.Entry<String, Values> entry : items.entrySet()) {
                 System.out.println(entry.getKey() + " = " + entry.getValue().getValue());
